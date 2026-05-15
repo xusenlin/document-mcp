@@ -19,6 +19,7 @@ RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debia
         python3 \
         python3-pip \
         fonts-wqy-zenhei \
+        wkhtmltopdf \
         ca-certificates \
     && pip3 install --break-system-packages --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ \
         "markitdown[docx,pdf,pptx]==0.1.5" \

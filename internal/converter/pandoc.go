@@ -25,7 +25,10 @@ func (p *Pandoc) Convert(ctx context.Context, sourcePath, targetPath string) (*C
 	}
 
 	if targetExt == "pdf" {
-		args = append(args, "--pdf-engine=xelatex")
+		args = append(args, "--pdf-engine=wkhtmltopdf")
+	}
+	if targetExt == "html" {
+		args = append(args, "--standalone")
 	}
 
 	cmd := exec.CommandContext(ctx, "pandoc", args...)

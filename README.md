@@ -9,7 +9,10 @@
 make docker-build
 
 # 运行容器（挂载宿主机文档目录）
-docker run -p 8080:8080 -v /your/docs:/data document-mcp:latest
+docker run -p 8080:8080 -v /your/docs:/data ghcr.io/xusenlin/document-mcp:v1.0.0
+
+# 推送到 ghcr.io
+make docker-push
 ```
 
 ## MCP Tools
@@ -128,10 +131,11 @@ make run            # 本地运行
 | libreoffice-writer | latest (debian bookworm) |
 | markitdown | 0.1.5 (with docx/pdf/pptx extras) |
 | pdfunite / pdfseparate | poppler-utils |
+| wkhtmltopdf | 0.12.6 |
 
 ## 开发
 
 ```bash
-go run ./cmd/server/                    # 本地运行（需预先安装 pandoc/markitdown/libreoffice）
+go run ./cmd/server/                    # 本地运行（需预先安装 pandoc/markitdown/libreoffice/wkhtmltopdf）
 MCP_ADDR=:9090 go run ./cmd/server/     # 指定端口
 ```

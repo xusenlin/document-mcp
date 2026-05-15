@@ -1,13 +1,17 @@
-.PHONY: build docker-build docker-run run
+IMAGE := ghcr.io/xusenlin/document-mcp
+VERSION := v1.0.0
+
+.PHONY: build docker-push run
 
 build:
 	go build -o bin/document-mcp ./cmd/server/
 
-docker-build:
-	docker build -t document-mcp:latest .
-
-docker-run:
-	docker run -p 8080:8080 -v $(HOME)/documents:/data document-mcp:latest
+docker-push:
+	docker buildx build \
+		--platform linux/amd64,linux/arm64 \
+		-t $(IMAGE):$(VERSION) \
+		-t $(IMAGE):latest \
+		--push .
 
 run:
 	go run ./cmd/server/
