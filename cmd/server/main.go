@@ -28,10 +28,13 @@ func main() {
 
 	handler := mcp.NewStreamableHTTPHandler(
 		func(r *http.Request) *mcp.Server { return s },
-		&mcp.StreamableHTTPOptions{},
+		&mcp.StreamableHTTPOptions{
+			Stateless:    true,
+			JSONResponse: true,
+		},
 	)
 
-	log.Printf("document-mcp v0.1.0 starting on %s", addr)
+	log.Printf("document-mcp v0.1.0 starting on %s (stateless)", addr)
 
 	if err := http.ListenAndServe(addr, handler); err != nil {
 		log.Fatal(err)
