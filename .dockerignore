@@ -1,0 +1,28 @@
+# Binaries
+/bin
+/document-mcp
+/dist
+*.exe
+*.so
+*.dylib
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+
+# Temp
+*.tmp
+tmp/
+temp/
+
+# Documentation (optional, already copied if needed)
+*.md
+README.md
+
+# OS
+.DS_Store
+Thumbs.db
