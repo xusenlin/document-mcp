@@ -5,14 +5,10 @@
 ## 快速开始
 
 ```bash
-# 构建镜像
-make docker-build
 
 # 运行容器（挂载宿主机文档目录）
-docker run -p 8080:8080 -v /your/docs:/data ghcr.io/xusenlin/document-mcp:v1.0.0
+docker run -p 8080:8080 -v /data:/data ghcr.io/xusenlin/document-mcp:v1.0.0
 
-# 推送到 ghcr.io
-make docker-push
 ```
 
 ## MCP Tools
