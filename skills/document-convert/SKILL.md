@@ -5,7 +5,7 @@ description: 文档格式转换，支持 md、pdf、docx、html、pptx、xlsx �
 
 # 文档转换
 
-通过 `docker run` 调用 document-mcp 容器完成任意文档格式互转。容器内集成 pandoc、LibreOffice、markitdown、wkhtmltopdf。
+通过 `docker run` 调用 document-mcp 容器完成任意文档格式互转。容器内集成 pandoc、LibreOffice、markitdown、weasyprint、headless-shell。
 
 ## 路径规则
 

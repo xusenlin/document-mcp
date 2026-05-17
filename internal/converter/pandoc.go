@@ -25,7 +25,7 @@ func (p *Pandoc) Convert(ctx context.Context, sourcePath, targetPath string) (*C
 	}
 
 	if targetExt == "pdf" {
-		args = append(args, "--pdf-engine=wkhtmltopdf")
+		args = append(args, "--pdf-engine=weasyprint")
 	}
 	if targetExt == "html" {
 		args = append(args, "--standalone")
