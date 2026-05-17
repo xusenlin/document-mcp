@@ -1,6 +1,6 @@
 # document-mcp
 
-基于 Go + MCP Go SDK 的文档转换服务。支持 **MCP** 和 **CLI + Skill** 两种模式，容器内集成 pandoc、LibreOffice、markitdown、wkhtmltopdf 完成任意文档格式互转。
+基于 Go + MCP Go SDK 的文档转换服务。支持 **MCP** 和 **CLI + Skill** 两种模式，容器内集成 pandoc、LibreOffice、markitdown、weasyprint、headless-shell 完成任意文档格式互转。
 
 ---
 
@@ -70,18 +70,44 @@ Skill 文件位于 `skills/document-convert/SKILL.md`，复制到对应工具的
 | `merge_pdf` | `docker run --rm -v <dir>:/data <image> cli merge /data/a.pdf /data/b.pdf` | 合并多个 PDF |
 | `split_pdf` | `docker run --rm -v <dir>:/data <image> cli split /data/doc.pdf [页码范围]` | 拆分 PDF |
 
-> `<image>` = `ghcr.io/xusenlin/document-mcp:v1.2.0`，后续命令以此为镜像。
+> `<image>` = `ghcr.io/xusenlin/document-mcp:v1.3.0`，后续命令以此为镜像。
 
 ---
 
 ## 转换引擎
 
-| 源格式 | 目标格式 | 引擎 | 链路 |
-|--------|----------|------|------|
-| `.docx` `.pptx` `.xlsx` `.pdf` | `.md` | markitdown | `src → md` |
-| `.html` `.latex` `.tex` `.epub` `.odt` `.rst` `.org` `.txt` `.md` | `.md` `.pdf` `.docx` `.html` | pandoc | `src → dst` |
-| `.docx` `.pptx` `.xlsx` `.odt` | `.pdf` | LibreOffice | `src → pdf` |
-| `.pptx` `.xlsx` `.pdf` | `.docx` `.html` | markitdown + pandoc | `src → md → dst` |
+### → PDF
+
+| 源格式 | 引擎 | 链路 |
+|--------|------|------|
+| `.html` `.htm` | headless-shell（amd64）/ pandoc + weasyprint（arm64） | `src → pdf` |
+| `.docx` `.pptx` `.xlsx` `.odt` | LibreOffice | `src → pdf` |
+| `.md` `.latex` `.tex` `.rst` `.org` `.txt` `.epub` | pandoc + weasyprint | `src → pdf` |
+| `.pdf` | none | 同格式跳过 |
+
+### → Markdown
+
+| 源格式 | 引擎 | 链路 |
+|--------|------|------|
+| `.docx` `.pptx` `.xlsx` `.pdf` | markitdown | `src → md` |
+| `.html` `.latex` `.tex` `.epub` `.odt` `.rst` `.org` `.txt` | pandoc | `src → md` |
+| `.md` | none | 同格式跳过 |
+
+### → Word
+
+| 源格式 | 引擎 | 链路 |
+|--------|------|------|
+| `.md` `.html` `.latex` `.tex` `.odt` `.epub` `.rst` `.org` `.txt` | pandoc | `src → docx` |
+| `.pptx` `.xlsx` `.pdf` | markitdown + pandoc | `src → md → docx` |
+| `.docx` | none | 同格式跳过 |
+
+### → HTML
+
+| 源格式 | 引擎 | 链路 |
+|--------|------|------|
+| `.md` `.latex` `.tex` `.docx` `.odt` `.epub` `.rst` `.org` `.txt` | pandoc | `src → html` |
+| `.pptx` `.xlsx` `.pdf` | markitdown + pandoc | `src → md → html` |
+| `.html` | none | 同格式跳过 |
 
 ---
 
@@ -111,8 +137,9 @@ make run            # 本地运行 HTTP 模式
 | pandoc | latest (debian bookworm) |
 | libreoffice-writer | latest (debian bookworm) |
 | markitdown | 0.1.5 (with docx/pdf/pptx extras) |
+| weasyprint | latest (pip) |
+| headless-shell | 138.0.7204.183 (Chromium) |
 | pdfunite / pdfseparate | poppler-utils |
-| wkhtmltopdf | 0.12.6 |
 
 ## 开发
 

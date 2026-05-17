@@ -34,8 +34,10 @@ func RegisterTools(s *mcp.Server) {
 - 源文件已是 .pdf 格式时，直接返回源路径，无需转换
 - 目标文件已存在时会报错，请先手动删除
 
-Office 文档（docx/pptx/xlsx/odt）走 LibreOffice 渲染，排版保真度最高。
-文本格式（md/html/latex/tex/rst/org/txt/epub）走 pandoc 转换。`,
+转换引擎：
+- html/htm → headless-shell（Chromium 渲染，排版保真最高）
+- docx/pptx/xlsx/odt → LibreOffice（排版保真）
+- md/latex/tex/rst/org/txt/epub → pandoc + weasyprint（文本格式转换）`,
 		},
 		tool.ConvertToPDF,
 	)

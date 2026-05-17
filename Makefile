@@ -1,5 +1,5 @@
 IMAGE := ghcr.io/xusenlin/document-mcp
-VERSION := v1.2.0
+VERSION := v1.3.0
 
 .PHONY: build docker-dev docker-push run
 

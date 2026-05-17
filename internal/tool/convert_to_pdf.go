@@ -50,6 +50,13 @@ func ConvertToPDF(ctx context.Context, req *mcp.CallToolRequest, input ConvertTo
 				res.OutputPath = targetPath
 			}
 		}
+	} else if sourceExt == "html" || sourceExt == "htm" {
+		headless := converter.NewHeadlessShell()
+		if headless.Available() {
+			res, err = headless.ConvertToPDF(ctx, input.SourcePath, targetPath)
+		} else {
+			res, err = converter.NewPandoc().Convert(ctx, input.SourcePath, targetPath)
+		}
 	} else if converter.IsPandocInputExt(sourceExt) {
 		res, err = converter.NewPandoc().Convert(ctx, input.SourcePath, targetPath)
 	} else {
