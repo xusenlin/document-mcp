@@ -1,10 +1,16 @@
 IMAGE := ghcr.io/xusenlin/document-mcp
-VERSION := v1.0.1
+VERSION := v1.2.0
 
-.PHONY: build docker-push run
+.PHONY: build docker-dev docker-push run
 
 build:
-	go build -o bin/document-mcp ./cmd/server/
+	go build -o bin/document-mcp ./cmd/cli/
+
+docker-dev:
+	docker build -t $(IMAGE):dev .
+	docker rm -f document-mcp-dev 2>/dev/null || true
+	docker run -d --name document-mcp-dev -p 8080:8080 -v $(PWD):/data $(IMAGE):dev
+	@echo "dev 容器已启动: document-mcp-dev (端口 8080)"
 
 docker-push:
 	docker buildx build \
@@ -14,4 +20,4 @@ docker-push:
 		--push .
 
 run:
-	go run ./cmd/server/
+	go run ./cmd/cli/

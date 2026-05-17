@@ -6,12 +6,18 @@ import (
 	"os"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/xusenlin/document-mcp/internal/cli"
 	"github.com/xusenlin/document-mcp/internal/server"
 )
 
 func main() {
+	if len(os.Args) > 1 {
+		cli.Run(os.Args[1:])
+		return
+	}
+
 	s := mcp.NewServer(
-		&mcp.Implementation{Name: "document-mcp", Version: "v0.1.0"},
+		&mcp.Implementation{Name: "document-mcp", Version: "v1.2.0"},
 		&mcp.ServerOptions{
 			Capabilities: &mcp.ServerCapabilities{
 				Tools: &mcp.ToolCapabilities{},
@@ -34,7 +40,7 @@ func main() {
 		},
 	)
 
-	log.Printf("document-mcp v0.1.0 starting on %s (stateless)", addr)
+	log.Printf("document-mcp v1.2.0 starting on %s (stateless)", addr)
 
 	if err := http.ListenAndServe(addr, handler); err != nil {
 		log.Fatal(err)
