@@ -11,6 +11,7 @@ import (
 
 type ConvertToPDFInput struct {
 	SourcePath string `json:"source_path" jsonschema:"源文件路径（容器内路径）"`
+	Theme      string `json:"theme,omitempty" jsonschema:"PDF 主题：default（GitHub 技术文档风格）或 paper（学术报告风格），默认 default。仅对 md/latex/tex/rst/org/txt/epub 转 PDF 生效"`
 }
 
 type ConvertToPDFOutput struct {
@@ -55,10 +56,12 @@ func ConvertToPDF(ctx context.Context, req *mcp.CallToolRequest, input ConvertTo
 		if headless.Available() {
 			res, err = headless.ConvertToPDF(ctx, input.SourcePath, targetPath)
 		} else {
-			res, err = converter.NewPandoc().Convert(ctx, input.SourcePath, targetPath)
+			p := newPandoc(input.Theme)
+			res, err = p.Convert(ctx, input.SourcePath, targetPath)
 		}
 	} else if converter.IsPandocInputExt(sourceExt) {
-		res, err = converter.NewPandoc().Convert(ctx, input.SourcePath, targetPath)
+		p := newPandoc(input.Theme)
+		res, err = p.Convert(ctx, input.SourcePath, targetPath)
 	} else {
 		return nil, ConvertToPDFOutput{},
 			fmt.Errorf("unsupported source format .%s for pdf conversion, supported Office: docx/pptx/xlsx/odt, text: md/html/latex/tex/rst/org/txt/epub", sourceExt)
@@ -72,4 +75,12 @@ func ConvertToPDF(ctx context.Context, req *mcp.CallToolRequest, input ConvertTo
 	return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: msg}}},
 		ConvertToPDFOutput{Success: true, OutputPath: res.OutputPath, Engine: res.Engine,
 			Chain: res.Chain, Message: "conversion successful"}, nil
+}
+
+func newPandoc(theme string) *converter.Pandoc {
+	p := converter.NewPandoc()
+	if theme != "" {
+		p.PdfTheme = theme
+	}
+	return p
 }

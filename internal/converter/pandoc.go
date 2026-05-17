@@ -8,7 +8,9 @@ import (
 	"strings"
 )
 
-type Pandoc struct{}
+type Pandoc struct {
+	PdfTheme string
+}
 
 func NewPandoc() *Pandoc {
 	return &Pandoc{}
@@ -26,6 +28,10 @@ func (p *Pandoc) Convert(ctx context.Context, sourcePath, targetPath string) (*C
 
 	if targetExt == "pdf" {
 		args = append(args, "--pdf-engine=weasyprint")
+		if p.PdfTheme == "" {
+			p.PdfTheme = "default"
+		}
+		args = append(args, fmt.Sprintf("--css=/usr/local/share/document-mcp/themes/%s.css", p.PdfTheme))
 	}
 	if targetExt == "html" {
 		args = append(args, "--standalone")

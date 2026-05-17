@@ -78,12 +78,12 @@ Skill 文件位于 `skills/document-convert/SKILL.md`，复制到对应工具的
 
 ### → PDF
 
-| 源格式 | 引擎 | 链路 |
-|--------|------|------|
-| `.html` `.htm` | headless-shell（amd64）/ pandoc + weasyprint（arm64） | `src → pdf` |
-| `.docx` `.pptx` `.xlsx` `.odt` | LibreOffice | `src → pdf` |
-| `.md` `.latex` `.tex` `.rst` `.org` `.txt` `.epub` | pandoc + weasyprint | `src → pdf` |
-| `.pdf` | none | 同格式跳过 |
+| 源格式 | 引擎 | 链路 | 主题 |
+|--------|------|------|:---:|
+| `.html` `.htm` | headless-shell（amd64）/ pandoc + weasyprint（arm64） | `src → pdf` | ❌ |
+| `.docx` `.pptx` `.xlsx` `.odt` | LibreOffice | `src → pdf` | ❌ |
+| `.md` `.latex` `.tex` `.rst` `.org` `.txt` `.epub` | pandoc + weasyprint | `src → pdf` | ✅ |
+| `.pdf` | none | 同格式跳过 | — |
 
 ### → Markdown
 
@@ -108,6 +108,29 @@ Skill 文件位于 `skills/document-convert/SKILL.md`，复制到对应工具的
 | `.md` `.latex` `.tex` `.docx` `.odt` `.epub` `.rst` `.org` `.txt` | pandoc | `src → html` |
 | `.pptx` `.xlsx` `.pdf` | markitdown + pandoc | `src → md → html` |
 | `.html` | none | 同格式跳过 |
+
+---
+
+## 主题
+
+PDF 输出支持 2 套内置 CSS 主题，通过 `theme` 参数选择：
+
+| 参数值 | 主题 | 风格 | 适用场景 |
+|--------|------|------|----------|
+| `default`（默认） | [themes/default.css](themes/default.css) | GitHub 风格，无衬线，表格带边框 | 技术文档 |
+| `paper` | [themes/paper.css](themes/paper.css) | 学术报告，衬线，首行缩进，自动编号 | 论文/报告 |
+
+**生效范围：** 仅对 md / latex / tex / rst / org / txt / epub → pdf 生效，html→pdf 和 Office→pdf 不受主题控制。
+
+MCP 调用示例：
+```json
+{ "tool": "convert_to_pdf", "arguments": { "source_path": "/data/doc.md", "theme": "paper" } }
+```
+
+CLI 调用示例：
+```bash
+docker run --rm -v /path:/data ghcr.io/xusenlin/document-mcp:v1.3.1 cli pdf /data/doc.md --theme=paper
+```
 
 ---
 

@@ -35,9 +35,12 @@ func RegisterTools(s *mcp.Server) {
 - 目标文件已存在时会报错，请先手动删除
 
 转换引擎：
-- html/htm → headless-shell（Chromium 渲染，排版保真最高）
-- docx/pptx/xlsx/odt → LibreOffice（排版保真）
-- md/latex/tex/rst/org/txt/epub → pandoc + weasyprint（文本格式转换）`,
+- html/htm → headless-shell（Chromium 渲染，排版保真最高，theme 不生效）
+- docx/pptx/xlsx/odt → LibreOffice（排版保真，theme 不生效）
+- md/latex/tex/rst/org/txt/epub → pandoc + weasyprint（文本格式转换，支持 theme）
+
+可选参数：
+- theme：default（GitHub 技术文档风格，默认）或 paper（学术报告风格），仅对 md/latex/tex/rst/org/txt/epub → pdf 生效`,
 		},
 		tool.ConvertToPDF,
 	)

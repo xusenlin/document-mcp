@@ -1,0 +1,210 @@
+/*
+ * default.css — document-mcp built-in theme
+ *
+ * Style: GitHub-flavored, sans-serif, suitable for technical documentation.
+ * Tested with: pandoc --css → WeasyPrint, Chromium headless --print-to-pdf.
+ *
+ * Font stack uses system fonts first, then CJK fallbacks. The container ships
+ * Noto Sans CJK / WenQuanYi Zen Hei as a baseline; user-installed fonts on
+ * the host don't matter — rendering happens inside the container.
+ */
+
+@page {
+  size: A4;
+  margin: 2cm 1.8cm;
+  /* WeasyPrint supports margin boxes; Chromium ignores them silently. */
+  @bottom-center {
+    content: counter(page) " / " counter(pages);
+    font-size: 9pt;
+    color: #59636e;
+  }
+}
+
+html {
+  font-size: 10.5pt;
+  line-height: 1.6;
+}
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial,
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Zen Hei",
+    sans-serif;
+  color: #1f2328;
+  margin: 0;
+  word-wrap: break-word;
+}
+
+/* ---- Headings ---- */
+
+h1, h2, h3, h4, h5, h6 {
+  color: #1f2328;
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 1.5em;
+  margin-bottom: 0.6em;
+  page-break-after: avoid;
+}
+
+h1 {
+  font-size: 2em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid #d0d7de;
+}
+
+h2 {
+  font-size: 1.5em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid #d0d7de;
+}
+
+h3 { font-size: 1.25em; }
+h4 { font-size: 1em; }
+h5 { font-size: 0.9em; }
+h6 { font-size: 0.85em; color: #59636e; }
+
+/* ---- Paragraphs & inline ---- */
+
+p { margin: 0 0 1em 0; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+
+a {
+  color: #0969da;
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+/* ---- Lists ---- */
+
+ul, ol {
+  padding-left: 2em;
+  margin: 0 0 1em 0;
+}
+
+li { margin-bottom: 0.25em; }
+li > p { margin-bottom: 0.5em; }
+
+/* GFM task lists from pandoc */
+ul.task-list {
+  list-style: none;
+  padding-left: 1em;
+}
+ul.task-list li input[type="checkbox"] {
+  margin-right: 0.4em;
+}
+
+/* ---- Code ---- */
+
+code, pre, kbd, samp {
+  font-family:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
+code {
+  background: rgba(175, 184, 193, 0.2);
+  padding: 0.2em 0.4em;
+  border-radius: 6px;
+  font-size: 0.875em;
+}
+
+pre {
+  background: #f6f8fa;
+  border-radius: 6px;
+  padding: 1em;
+  overflow: auto;
+  line-height: 1.45;
+  margin: 0 0 1em 0;
+  font-size: 0.875em;
+  page-break-inside: avoid;
+}
+
+pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: 1em;
+  white-space: pre;
+}
+
+kbd {
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  box-shadow: inset 0 -1px 0 #d0d7de;
+  padding: 0.1em 0.4em;
+  font-size: 0.85em;
+}
+
+/* ---- Blockquote ---- */
+
+blockquote {
+  color: #59636e;
+  border-left: 4px solid #d0d7de;
+  padding: 0 1em;
+  margin: 0 0 1em 0;
+}
+blockquote > :last-child { margin-bottom: 0; }
+
+/* ---- Tables ---- */
+
+table {
+  border-collapse: collapse;
+  margin: 0 0 1em 0;
+  width: 100%;
+  page-break-inside: avoid;
+}
+
+th, td {
+  border: 1px solid #d0d7de;
+  padding: 0.4em 0.8em;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #f6f8fa;
+  font-weight: 600;
+}
+
+tr:nth-child(2n) td {
+  background: #f6f8fa;
+}
+
+/* ---- Misc ---- */
+
+hr {
+  border: 0;
+  border-top: 1px solid #d0d7de;
+  margin: 1.5em 0;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+dt {
+  font-weight: 600;
+  margin-top: 0.5em;
+}
+
+dd {
+  margin-left: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+/* pandoc footnotes */
+.footnotes {
+  font-size: 0.875em;
+  color: #59636e;
+  margin-top: 2em;
+  border-top: 1px solid #d0d7de;
+  padding-top: 0.5em;
+}
+.footnotes ol { padding-left: 1.5em; }
+
+/* Manual page break utility */
+.page-break { page-break-after: always; }

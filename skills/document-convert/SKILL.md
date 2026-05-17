@@ -19,12 +19,12 @@ description: 文档格式转换，支持 md、pdf、docx、html、pptx、xlsx �
 
 | 命令 | 用法 | 输出 |
 |------|------|------|
-| `pdf` | `docker run --rm -v <父目录>:/data ghcr.io/xusenlin/document-mcp:v1.2.0 cli pdf /data/<文件>` | 同目录 .pdf |
-| `docx` | `docker run --rm -v <父目录>:/data ghcr.io/xusenlin/document-mcp:v1.2.0 cli docx /data/<文件>` | 同目录 .docx |
-| `html` | `docker run --rm -v <父目录>:/data ghcr.io/xusenlin/document-mcp:v1.2.0 cli html /data/<文件>` | 同目录 .html |
-| `markdown` | `docker run --rm -v <父目录>:/data ghcr.io/xusenlin/document-mcp:v1.2.0 cli markdown /data/<文件>` | 同目录 .md |
-| `merge` | `docker run --rm -v <父目录>:/data ghcr.io/xusenlin/document-mcp:v1.2.0 cli merge /data/a.pdf /data/b.pdf [c.pdf ...]` | 同目录 merged.pdf |
-| `split` | `docker run --rm -v <父目录>:/data ghcr.io/xusenlin/document-mcp:v1.2.0 cli split /data/<文件> [页码范围]` | 同目录 {名}_page_N.pdf |
+| `pdf` | `docker run --rm -v <父目录>:/data ghcr.io/xusenlin/document-mcp:v1.3.1 cli pdf /data/<文件> [--theme=default\|paper]` | 同目录 .pdf |
+| `docx` | `docker run --rm -v <父目录>:/data ghcr.io/xusenlin/document-mcp:v1.3.1 cli docx /data/<文件>` | 同目录 .docx |
+| `html` | `docker run --rm -v <父目录>:/data ghcr.io/xusenlin/document-mcp:v1.3.1 cli html /data/<文件>` | 同目录 .html |
+| `markdown` | `docker run --rm -v <父目录>:/data ghcr.io/xusenlin/document-mcp:v1.3.1 cli markdown /data/<文件>` | 同目录 .md |
+| `merge` | `docker run --rm -v <父目录>:/data ghcr.io/xusenlin/document-mcp:v1.3.1 cli merge /data/a.pdf /data/b.pdf [c.pdf ...]` | 同目录 merged.pdf |
+| `split` | `docker run --rm -v <父目录>:/data ghcr.io/xusenlin/document-mcp:v1.3.1 cli split /data/<文件> [页码范围]` | 同目录 {名}_page_N.pdf |
 
 ## 行为规则
 
@@ -33,3 +33,4 @@ description: 文档格式转换，支持 md、pdf、docx、html、pptx、xlsx �
 - 同格式转换（如 pdf→pdf）会跳过并返回源路径
 - `merge` 输出固定命名为 `merged.pdf`
 - `split` 输出命名为 `{名}_page_N.pdf`，指定范围时 `{名}_range_N.pdf`
+- `pdf` 支持 `--theme=` 参数：`default`（GitHub 技术文档风格）/ `paper`（学术报告风格），仅对 md/latex/tex/rst/org/txt/epub 转 PDF 生效
