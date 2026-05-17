@@ -47,6 +47,10 @@ func ConvertToMarkdown(ctx context.Context, req *mcp.CallToolRequest, input Conv
 
 	targetPath := resolveOutput(input.SourcePath, "md")
 
+	if err := checkTargetExists(targetPath); err != nil {
+		return nil, ConvertToMarkdownOutput{}, err
+	}
+
 	var res *converter.ConvertResult
 	var err error
 
