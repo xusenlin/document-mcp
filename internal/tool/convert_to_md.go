@@ -9,16 +9,16 @@ import (
 )
 
 type ConvertToMarkdownInput struct {
-	SourcePath string `json:"source_path" jsonschema:"源文件路径（容器内路径）"`
-	OutputPath string `json:"output_path,omitempty" jsonschema:"输出文件路径，不指定则直接在 content 中返回 markdown 文本"`
+	SourcePath    string `json:"source_path" jsonschema:"源文件路径（容器内路径）"`
+	ReturnContent bool   `json:"return_content,omitempty" jsonschema:"是否直接在响应中返回 markdown 文本内容（不存盘），默认 false 即存盘"`
 }
 
 type ConvertToMarkdownOutput struct {
 	Success    bool   `json:"success" jsonschema:"是否成功"`
-	OutputPath string `json:"output_path,omitempty" jsonschema:"输出文件路径"`
+	OutputPath string `json:"output_path,omitempty" jsonschema:"输出文件路径（存盘模式下在源文件同目录）"`
 	Engine     string `json:"engine" jsonschema:"使用的转换引擎"`
 	Chain      string `json:"chain" jsonschema:"转换链路"`
-	Content    string `json:"content,omitempty" jsonschema:"转换后的 Markdown 文本（未指定 output_path 时）"`
+	Content    string `json:"content,omitempty" jsonschema:"转换后的 Markdown 文本（内容返回模式下）"`
 	Message    string `json:"message" jsonschema:"附加信息"`
 }
 
@@ -28,21 +28,24 @@ func ConvertToMarkdown(ctx context.Context, req *mcp.CallToolRequest, input Conv
 	sourceExt := converter.Ext(input.SourcePath)
 
 	if converter.IsSameFormat(input.SourcePath, "md") {
-		targetPath := resolveOutput(input.SourcePath, input.OutputPath, "md")
-		nopRes, err := converter.NopCopy(input.SourcePath, targetPath)
-		if err != nil {
-			return nil, ConvertToMarkdownOutput{}, err
+		if input.ReturnContent {
+			data, readErr := converter.ReadFile(input.SourcePath)
+			if readErr != nil {
+				return nil, ConvertToMarkdownOutput{}, readErr
+			}
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{&mcp.TextContent{Text: string(data)}},
+			}, ConvertToMarkdownOutput{
+				Success: true, OutputPath: input.SourcePath, Engine: "none",
+				Chain: "同格式，直接读取", Content: string(data),
+				Message: "source is already markdown, content returned",
+			}, nil
 		}
-		msg := formatResult(nopRes)
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{&mcp.TextContent{Text: msg}},
-		}, ConvertToMarkdownOutput{
-			Success: true, OutputPath: targetPath, Engine: "copy",
-			Chain: nopRes.Chain, Message: "same format, copied directly",
-		}, nil
+		return nil, ConvertToMarkdownOutput{},
+			fmt.Errorf("源文件已是 Markdown 格式，无法再存盘。请使用 return_content=true 直接读取")
 	}
 
-	targetPath := resolveOutput(input.SourcePath, input.OutputPath, "md")
+	targetPath := resolveOutput(input.SourcePath, "md")
 
 	var res *converter.ConvertResult
 	var err error
@@ -65,7 +68,7 @@ func ConvertToMarkdown(ctx context.Context, req *mcp.CallToolRequest, input Conv
 		Chain: res.Chain, Message: "conversion successful",
 	}
 
-	if input.OutputPath == "" {
+	if input.ReturnContent {
 		data, readErr := converter.ReadFile(res.OutputPath)
 		if readErr != nil {
 			return nil, ConvertToMarkdownOutput{}, readErr
@@ -82,7 +85,3 @@ func ConvertToMarkdown(ctx context.Context, req *mcp.CallToolRequest, input Conv
 	}, out, nil
 }
 
-func formatResult(res *converter.ConvertResult) string {
-	return fmt.Sprintf("✅ 转换完成\n• 输出: %s\n• 引擎: %s\n• 链路: %s",
-		res.OutputPath, res.Engine, res.Chain)
-}

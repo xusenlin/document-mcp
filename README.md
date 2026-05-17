@@ -7,7 +7,7 @@
 ```bash
 
 # 运行容器（挂载宿主机文档目录）
-docker run -p 8080:8080 -v /data:/data ghcr.io/xusenlin/document-mcp:v1.0.0
+docker run -p 8080:8080 -v /data:/data ghcr.io/xusenlin/document-mcp:v1.0.1
 
 ```
 
@@ -21,7 +21,7 @@ docker run -p 8080:8080 -v /data:/data ghcr.io/xusenlin/document-mcp:v1.0.0
 |--------|------|------|
 | `.docx` `.pptx` `.xlsx` `.pdf` | markitdown | `src → md` |
 | `.html` `.latex` `.tex` `.epub` `.odt` `.rst` `.org` `.txt` `.md` | pandoc | `src → md` |
-| `.md`（同格式） | cp | 直接复制 |
+| `.md`（同格式） | none | 直接返回源路径 |
 
 ### 2. convert_to_pdf — 任意格式 → PDF
 
@@ -29,7 +29,7 @@ docker run -p 8080:8080 -v /data:/data ghcr.io/xusenlin/document-mcp:v1.0.0
 |--------|------|------|
 | `.docx` `.pptx` `.xlsx` `.odt` | LibreOffice | `src → pdf` |
 | `.md` `.html` `.latex` `.tex` `.rst` `.org` `.txt` `.epub` | pandoc | `src → pdf` |
-| `.pdf`（同格式） | cp | 直接复制 |
+| `.pdf`（同格式） | none | 直接返回源路径 |
 
 ### 3. convert_to_docx — 任意格式 → Word
 
@@ -37,7 +37,7 @@ docker run -p 8080:8080 -v /data:/data ghcr.io/xusenlin/document-mcp:v1.0.0
 |--------|------|------|
 | `.md` `.html` `.latex` `.tex` `.odt` `.epub` `.rst` `.org` `.txt` | pandoc | `src → docx` |
 | `.pptx` `.xlsx` `.pdf` | markitdown + pandoc | `src → md → docx` |
-| `.docx`（同格式） | cp | 直接复制 |
+| `.docx`（同格式） | none | 直接返回源路径 |
 
 ### 4. convert_to_html — 任意格式 → HTML
 
@@ -45,15 +45,19 @@ docker run -p 8080:8080 -v /data:/data ghcr.io/xusenlin/document-mcp:v1.0.0
 |--------|------|------|
 | `.md` `.latex` `.tex` `.docx` `.odt` `.epub` `.rst` `.org` `.txt` | pandoc | `src → html` |
 | `.pptx` `.xlsx` `.pdf` | markitdown + pandoc | `src → md → html` |
-| `.html`（同格式） | cp | 直接复制 |
+| `.html`（同格式） | none | 直接返回源路径 |
 
 ### 5. merge_pdf — 合并 PDF
+
+输出固定文件名为 **merged.pdf**（在第一个源文件同目录），目标存在则报错。
 
 | 引擎 | 说明 |
 |------|------|
 | pdfunite（poppler） | 多个 PDF 合并为一个，至少 2 个文件 |
 
 ### 6. split_pdf — 拆分 PDF
+
+输出在源文件同目录，命名：按页 **{名}_page_N.pdf**，按范围 **{名}_range_N.pdf**。目标存在则报错。
 
 | 引擎 | 说明 |
 |------|------|
@@ -73,7 +77,15 @@ docker run -p 8080:8080 -v /data:/data ghcr.io/xusenlin/document-mcp:v1.0.0
 
 ## 同格式处理
 
-当源文件与目标格式一致时（如 `.html` → `convert_to_html`），不执行转换，直接复制到输出路径。AI 无感，链路不断。
+当源文件与目标格式一致时（如 `.html` → `convert_to_html`），不执行转换，直接返回源路径。
+
+## 输出规则
+
+- 所有转换输出文件自动生成在**源文件同目录**，文件名与源文件相同，仅扩展名变化
+- `merge_pdf` 输出固定命名为 **merged.pdf**（第一个源文件同目录）
+- `split_pdf` 输出命名：按页 **{源文件名}_page_N.pdf**，按范围 **{源文件名}_range_N.pdf**
+- 目标文件已存在时会**报错**，请先手动删除
+- `convert_to_markdown` 支持 `return_content=true` 直接在响应中返回文本内容
 
 ## 调用示例
 
@@ -89,25 +101,37 @@ docker run -p 8080:8080 -v /data:/data ghcr.io/xusenlin/document-mcp:v1.0.0
 ```
 
 ```json
-// pptx → md（指定输出路径）
+// pptx → md 返回文本内容
 {
   "tool": "convert_to_markdown",
   "arguments": {
     "source_path": "/data/slides.pptx",
-    "output_path": "/data/slides.md"
+    "return_content": true
   }
 }
+// 直接在响应中返回 markdown 文本
 ```
 
 ```json
-// 合并多个 PDF
+// 合并多个 PDF（输出固定为 merged.pdf）
 {
   "tool": "merge_pdf",
   "arguments": {
-    "source_paths": ["/data/ch1.pdf", "/data/ch2.pdf", "/data/ch3.pdf"],
-    "output_path": "/data/full.pdf"
+    "source_paths": ["/data/ch1.pdf", "/data/ch2.pdf", "/data/ch3.pdf"]
   }
 }
+// 输出: /data/merged.pdf
+```
+
+```json
+// 拆分 PDF（输出命名: report_page_1.pdf, report_page_2.pdf ...）
+{
+  "tool": "split_pdf",
+  "arguments": {
+    "source_path": "/data/report.pdf"
+  }
+}
+// 输出目录: /data/（源文件同目录）
 ```
 
 ## 构建
