@@ -28,8 +28,22 @@ RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debia
         curl \
         unzip \
         ca-certificates \
+        tini \
     && if [ "$TARGETARCH" = "amd64" ]; then \
-        apt-get install -y --no-install-recommends libasound2 libatk-bridge2.0-0; \
+        apt-get install -y --no-install-recommends \
+            libasound2 \
+            libatk-bridge2.0-0 \
+            libcups2 \
+            libdbus-1-3 \
+            libdrm2 \
+            libgbm1 \
+            libnss3 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxext6 \
+            libxfixes3 \
+            libxkbcommon0 \
+            libxrandr2; \
         curl -fsSL -o /tmp/headless-shell.zip "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROME_VERSION}/linux64/chrome-headless-shell-linux64.zip" \
         && unzip -q /tmp/headless-shell.zip -d /tmp/headless-shell \
         && mv /tmp/headless-shell/chrome-headless-shell-linux64/chrome-headless-shell /usr/local/bin/ \
@@ -42,10 +56,11 @@ RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debia
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /document-mcp /usr/local/bin/document-mcp
+COPY themes/ /usr/local/share/document-mcp/themes/
 
 WORKDIR /data
 VOLUME ["/data"]
 
 EXPOSE 8080
 
-ENTRYPOINT ["document-mcp"]
+ENTRYPOINT ["/usr/bin/tini", "--", "document-mcp"]

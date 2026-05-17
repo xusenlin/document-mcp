@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/xusenlin/document-mcp/internal/tool"
 )
@@ -11,7 +12,7 @@ import (
 const usage = `document-mcp cli — 文档转换命令行
 
 用法:
-  document-mcp cli pdf       <源文件>
+  document-mcp cli pdf       <源文件> [--theme=default|paper]
   document-mcp cli docx      <源文件>
   document-mcp cli html      <源文件>
   document-mcp cli markdown  <源文件> [return_content]
@@ -34,9 +35,10 @@ func Run(args []string) {
 	switch cmd {
 	case "pdf":
 		if len(tail) < 1 {
-			fail("用法: document-mcp cli pdf <源文件>")
+			fail("用法: document-mcp cli pdf <源文件> [--theme=default|paper]")
 		}
-		_, out, err := tool.ConvertToPDF(ctx, nil, tool.ConvertToPDFInput{SourcePath: tail[0]})
+		theme := parseTheme(tail[1:])
+		_, out, err := tool.ConvertToPDF(ctx, nil, tool.ConvertToPDFInput{SourcePath: tail[0], Theme: theme})
 		printOrFail(out.OutputPath, err)
 
 	case "docx":
@@ -113,4 +115,13 @@ func printOrFail(outputPath string, err error) {
 func fail(msg string) {
 	fmt.Fprintln(os.Stderr, "Error:", msg)
 	os.Exit(1)
+}
+
+func parseTheme(args []string) string {
+	for _, a := range args {
+		if strings.HasPrefix(a, "--theme=") {
+			return strings.TrimPrefix(a, "--theme=")
+		}
+	}
+	return ""
 }
