@@ -3,6 +3,7 @@ package tool
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/xusenlin/document-mcp/internal/converter"
@@ -33,16 +34,22 @@ func ConvertToMarkdown(ctx context.Context, req *mcp.CallToolRequest, input Conv
 			if readErr != nil {
 				return nil, ConvertToMarkdownOutput{}, readErr
 			}
-			return &mcp.CallToolResult{
+			result := &mcp.CallToolResult{
 				Content: []mcp.Content{&mcp.TextContent{Text: string(data)}},
-			}, ConvertToMarkdownOutput{
+			}
+			out := ConvertToMarkdownOutput{
 				Success: true, OutputPath: input.SourcePath, Engine: "none",
 				Chain: "同格式，直接读取", Content: string(data),
 				Message: "source is already markdown, content returned",
-			}, nil
+			}
+			return result, out, nil
 		}
 		return nil, ConvertToMarkdownOutput{},
 			fmt.Errorf("源文件已是 Markdown 格式，无法再存盘。请使用 return_content=true 直接读取")
+	}
+
+	if input.ReturnContent {
+		return convertToMarkdownContent(ctx, input.SourcePath, sourceExt)
 	}
 
 	targetPath := resolveOutput(input.SourcePath, "md")
@@ -72,20 +79,61 @@ func ConvertToMarkdown(ctx context.Context, req *mcp.CallToolRequest, input Conv
 		Chain: res.Chain, Message: "conversion successful",
 	}
 
-	if input.ReturnContent {
-		data, readErr := converter.ReadFile(res.OutputPath)
-		if readErr != nil {
-			return nil, ConvertToMarkdownOutput{}, readErr
-		}
-		out.Content = string(data)
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{&mcp.TextContent{Text: out.Content}},
-		}, out, nil
-	}
-
 	msg := formatResult(res)
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{&mcp.TextContent{Text: msg}},
 	}, out, nil
 }
 
+func convertToMarkdownContent(ctx context.Context, sourcePath, sourceExt string) (
+	*mcp.CallToolResult, ConvertToMarkdownOutput, error,
+) {
+	var res *converter.ConvertResult
+	var err error
+
+	if converter.IsMarkitdownExt(sourceExt) {
+		res, err = converter.NewMarkitdown().Convert(ctx, sourcePath, "-")
+	} else if converter.IsPandocInputExt(sourceExt) {
+		res, err = convertPandocToTempMarkdown(ctx, sourcePath)
+	} else {
+		return nil, ConvertToMarkdownOutput{},
+			fmt.Errorf("unsupported source format .%s, supported: %s, %s", sourceExt, markitdownSupported, pandocSupported)
+	}
+	if err != nil {
+		return nil, ConvertToMarkdownOutput{}, err
+	}
+	defer os.Remove(res.OutputPath)
+
+	data, readErr := converter.ReadFile(res.OutputPath)
+	if readErr != nil {
+		return nil, ConvertToMarkdownOutput{}, readErr
+	}
+
+	content := string(data)
+	result := &mcp.CallToolResult{
+		Content: []mcp.Content{&mcp.TextContent{Text: content}},
+	}
+	out := ConvertToMarkdownOutput{
+		Success: true, Engine: res.Engine, Chain: res.Chain,
+		Content: content, Message: "conversion successful, content returned",
+	}
+	return result, out, nil
+}
+
+func convertPandocToTempMarkdown(ctx context.Context, sourcePath string) (*converter.ConvertResult, error) {
+	tmpFile, err := os.CreateTemp("", "_mcp_md_*.md")
+	if err != nil {
+		return nil, fmt.Errorf("create temp markdown: %w", err)
+	}
+	tmpPath := tmpFile.Name()
+	if err := tmpFile.Close(); err != nil {
+		return nil, fmt.Errorf("close temp markdown: %w", err)
+	}
+
+	res, err := converter.NewPandoc().Convert(ctx, sourcePath, tmpPath)
+	if err != nil {
+		os.Remove(tmpPath)
+		return nil, err
+	}
+	return res, nil
+}

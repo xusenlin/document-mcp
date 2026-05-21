@@ -26,6 +26,10 @@ func ConvertToPDF(ctx context.Context, req *mcp.CallToolRequest, input ConvertTo
 	*mcp.CallToolResult, ConvertToPDFOutput, error,
 ) {
 	sourceExt := converter.Ext(input.SourcePath)
+	theme, themeErr := normalizePDFTheme(input.Theme)
+	if themeErr != nil {
+		return nil, ConvertToPDFOutput{}, themeErr
+	}
 
 	if converter.IsSameFormat(input.SourcePath, "pdf") {
 		msg := fmt.Sprintf("✅ 源文件已是 PDF 格式，直接返回\n• 输出: %s", input.SourcePath)
@@ -56,11 +60,11 @@ func ConvertToPDF(ctx context.Context, req *mcp.CallToolRequest, input ConvertTo
 		if headless.Available() {
 			res, err = headless.ConvertToPDF(ctx, input.SourcePath, targetPath)
 		} else {
-			p := newPandoc(input.Theme)
+			p := newPandoc(theme)
 			res, err = p.Convert(ctx, input.SourcePath, targetPath)
 		}
 	} else if converter.IsPandocInputExt(sourceExt) {
-		p := newPandoc(input.Theme)
+		p := newPandoc(theme)
 		res, err = p.Convert(ctx, input.SourcePath, targetPath)
 	} else {
 		return nil, ConvertToPDFOutput{},
@@ -83,4 +87,16 @@ func newPandoc(theme string) *converter.Pandoc {
 		p.PdfTheme = theme
 	}
 	return p
+}
+
+func normalizePDFTheme(theme string) (string, error) {
+	if theme == "" {
+		return "default", nil
+	}
+	switch theme {
+	case "default", "paper":
+		return theme, nil
+	default:
+		return "", fmt.Errorf("unsupported pdf theme %q, supported: default, paper", theme)
+	}
 }

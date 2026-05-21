@@ -97,9 +97,14 @@ func RequiresMultiStep(sourceExt, targetExt string) bool {
 }
 
 func MultiStep(ctx context.Context, sourcePath, targetPath, targetExt string) (*ConvertResult, error) {
-	tmpDir := os.TempDir()
-	baseName := strings.TrimSuffix(filepath.Base(sourcePath), filepath.Ext(sourcePath))
-	tmpMd := filepath.Join(tmpDir, fmt.Sprintf("_mcp_tmp_%s.md", baseName))
+	tmpFile, err := os.CreateTemp("", "_mcp_tmp_*.md")
+	if err != nil {
+		return nil, fmt.Errorf("create temp markdown: %w", err)
+	}
+	tmpMd := tmpFile.Name()
+	if err := tmpFile.Close(); err != nil {
+		return nil, fmt.Errorf("close temp markdown: %w", err)
+	}
 	defer os.Remove(tmpMd)
 
 	md := NewMarkitdown()

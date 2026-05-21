@@ -52,10 +52,13 @@ func (m *Markitdown) convertToStdout(ctx context.Context, sourcePath string) (*C
 		return nil, fmt.Errorf("create temp file: %w", err)
 	}
 	tmpPath := tmpFile.Name()
-	defer tmpFile.Close()
 
-	if err := os.WriteFile(tmpPath, data, 0o644); err != nil {
+	if _, err := tmpFile.Write(data); err != nil {
+		tmpFile.Close()
 		return nil, fmt.Errorf("write temp file: %w", err)
+	}
+	if err := tmpFile.Close(); err != nil {
+		return nil, fmt.Errorf("close temp file: %w", err)
 	}
 
 	return &ConvertResult{

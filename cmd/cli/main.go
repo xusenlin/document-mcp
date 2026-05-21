@@ -10,6 +10,8 @@ import (
 	"github.com/xusenlin/document-mcp/internal/server"
 )
 
+var version = "dev"
+
 func main() {
 	if len(os.Args) > 1 {
 		cli.Run(os.Args[1:])
@@ -17,7 +19,7 @@ func main() {
 	}
 
 	s := mcp.NewServer(
-		&mcp.Implementation{Name: "document-mcp", Version: "v1.2.0"},
+		&mcp.Implementation{Name: "document-mcp", Version: version},
 		&mcp.ServerOptions{
 			Capabilities: &mcp.ServerCapabilities{
 				Tools: &mcp.ToolCapabilities{},
@@ -40,7 +42,7 @@ func main() {
 		},
 	)
 
-	log.Printf("document-mcp v1.2.0 starting on %s (stateless)", addr)
+	log.Printf("document-mcp %s starting on %s (stateless)", version, addr)
 
 	if err := http.ListenAndServe(addr, handler); err != nil {
 		log.Fatal(err)

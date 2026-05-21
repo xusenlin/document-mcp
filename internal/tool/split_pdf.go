@@ -3,6 +3,7 @@ package tool
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -26,25 +27,21 @@ type SplitPDFOutput struct {
 func SplitPDF(ctx context.Context, req *mcp.CallToolRequest, input SplitPDFInput) (
 	*mcp.CallToolResult, SplitPDFOutput, error,
 ) {
-	baseName := strings.TrimSuffix(filepath.Base(input.SourcePath), ".pdf")
+	if !strings.EqualFold(filepath.Ext(input.SourcePath), ".pdf") {
+		return nil, SplitPDFOutput{}, fmt.Errorf("not a pdf file: %s", input.SourcePath)
+	}
+
+	baseName := strings.TrimSuffix(filepath.Base(input.SourcePath), filepath.Ext(input.SourcePath))
 	outputDir := filepath.Dir(input.SourcePath)
+	totalPages, err := getPDFPageCount(ctx, input.SourcePath)
+	if err != nil {
+		return nil, SplitPDFOutput{}, err
+	}
 
 	if input.PageRange == "" {
 		pattern := filepath.Join(outputDir, baseName+"_page_%d.pdf")
 
-		pageInfo, err := exec.CommandContext(ctx, "pdfinfo", input.SourcePath).CombinedOutput()
-		if err != nil {
-			return nil, SplitPDFOutput{}, err
-		}
-		pageCount := 0
-		for _, line := range strings.Split(string(pageInfo), "\n") {
-			if strings.HasPrefix(line, "Pages:") {
-				fmt.Sscanf(line, "Pages: %d", &pageCount)
-				break
-			}
-		}
-
-		for i := 1; i <= pageCount; i++ {
+		for i := 1; i <= totalPages; i++ {
 			path := fmt.Sprintf(pattern, i)
 			if err := checkTargetExists(path); err != nil {
 				return nil, SplitPDFOutput{}, err
@@ -58,66 +55,64 @@ func SplitPDF(ctx context.Context, req *mcp.CallToolRequest, input SplitPDFInput
 		}
 
 		var files []string
-		for i := 1; i <= pageCount; i++ {
+		for i := 1; i <= totalPages; i++ {
 			files = append(files, fmt.Sprintf(pattern, i))
 		}
 
 		text := fmt.Sprintf("✅ PDF 拆分完成\n• 输出目录: %s（源文件同目录）\n• 共 %d 页\n• 命名: %s_page_N.pdf",
-			outputDir, pageCount, baseName)
+			outputDir, totalPages, baseName)
 
 		return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: text}}},
-			SplitPDFOutput{Success: true, OutputFiles: files, PageCount: pageCount,
+			SplitPDFOutput{Success: true, OutputFiles: files, PageCount: totalPages,
 				Message: "split by page"}, nil
 	}
 
-	ranges := strings.Split(input.PageRange, ",")
+	ranges, err := parsePageRanges(input.PageRange, totalPages)
+	if err != nil {
+		return nil, SplitPDFOutput{}, err
+	}
+	for i := range ranges {
+		outFile := filepath.Join(outputDir, fmt.Sprintf("%s_range_%d.pdf", baseName, i+1))
+		if err := checkTargetExists(outFile); err != nil {
+			return nil, SplitPDFOutput{}, err
+		}
+	}
+
+	tmpDir, err := os.MkdirTemp(outputDir, "."+baseName+"_split_*")
+	if err != nil {
+		return nil, SplitPDFOutput{}, fmt.Errorf("create temp split dir: %w", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
 	var outputFiles []string
 	pageCount := 0
 
 	for i, r := range ranges {
-		r = strings.TrimSpace(r)
-		parts := strings.Split(r, "-")
-		var first, last int
-
-		if len(parts) == 2 {
-			first, _ = strconv.Atoi(strings.TrimSpace(parts[0]))
-			last, _ = strconv.Atoi(strings.TrimSpace(parts[1]))
-		} else {
-			first, _ = strconv.Atoi(parts[0])
-			last = first
-		}
-
 		outFile := filepath.Join(outputDir, fmt.Sprintf("%s_range_%d.pdf", baseName, i+1))
 
-		if err := checkTargetExists(outFile); err != nil {
-			return nil, SplitPDFOutput{}, err
-		}
-
-		pattern := filepath.Join(outputDir, fmt.Sprintf("%s_range_%d_%%d.pdf", baseName, i+1))
-
-		cmd := exec.CommandContext(ctx, "pdfseparate", "-f", strconv.Itoa(first), "-l", strconv.Itoa(last),
+		pattern := filepath.Join(tmpDir, fmt.Sprintf("%s_range_%d_%%d.pdf", baseName, i+1))
+		cmd := exec.CommandContext(ctx, "pdfseparate", "-f", strconv.Itoa(r.first), "-l", strconv.Itoa(r.last),
 			input.SourcePath, pattern)
 		output, err := cmd.CombinedOutput()
 		if err != nil {
 			return nil, SplitPDFOutput{}, fmt.Errorf("pdfseparate failed: %s: %w", string(output), err)
 		}
 
-		pageFiles := pageSlice(pattern, first, last)
+		pageFiles := pageSlice(pattern, r.first, r.last)
 		if len(pageFiles) == 1 {
-			if err := renameFile(pageFiles[0], outFile); err != nil {
+			if err := os.Rename(pageFiles[0], outFile); err != nil {
 				return nil, SplitPDFOutput{}, err
 			}
 		} else {
 			mergeArgs := append(pageFiles, outFile)
-			if err := exec.CommandContext(ctx, "pdfunite", mergeArgs...).Run(); err != nil {
-				return nil, SplitPDFOutput{}, err
-			}
-			for _, pf := range pageFiles {
-				exec.Command("rm", pf).Run()
+			output, err := exec.CommandContext(ctx, "pdfunite", mergeArgs...).CombinedOutput()
+			if err != nil {
+				return nil, SplitPDFOutput{}, fmt.Errorf("pdfunite failed: %s: %w", string(output), err)
 			}
 		}
+
 		outputFiles = append(outputFiles, outFile)
-		pageCount += (last - first + 1)
+		pageCount += r.last - r.first + 1
 	}
 
 	text := fmt.Sprintf("✅ PDF 按范围拆分完成\n• 输出目录: %s（源文件同目录）\n• 生成 %d 个文件，共 %d 页\n• 命名: %s_range_N.pdf",
@@ -128,15 +123,90 @@ func SplitPDF(ctx context.Context, req *mcp.CallToolRequest, input SplitPDFInput
 			Message: "split by range"}, nil
 }
 
+type pageRange struct {
+	first int
+	last  int
+}
+
+func getPDFPageCount(ctx context.Context, sourcePath string) (int, error) {
+	pageInfo, err := exec.CommandContext(ctx, "pdfinfo", sourcePath).CombinedOutput()
+	if err != nil {
+		return 0, fmt.Errorf("pdfinfo failed: %s: %w", string(pageInfo), err)
+	}
+	for _, line := range strings.Split(string(pageInfo), "\n") {
+		if strings.HasPrefix(line, "Pages:") {
+			pageCount, err := strconv.Atoi(strings.TrimSpace(strings.TrimPrefix(line, "Pages:")))
+			if err != nil {
+				return 0, fmt.Errorf("parse pdf page count: %w", err)
+			}
+			if pageCount < 1 {
+				return 0, fmt.Errorf("pdf has no pages: %s", sourcePath)
+			}
+			return pageCount, nil
+		}
+	}
+	return 0, fmt.Errorf("pdfinfo output missing page count: %s", sourcePath)
+}
+
+func parsePageRanges(raw string, totalPages int) ([]pageRange, error) {
+	parts := strings.Split(raw, ",")
+	ranges := make([]pageRange, 0, len(parts))
+
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			return nil, fmt.Errorf("invalid page range %q: empty segment", raw)
+		}
+
+		bounds := strings.Split(part, "-")
+		if len(bounds) > 2 {
+			return nil, fmt.Errorf("invalid page range segment %q", part)
+		}
+
+		first, err := parsePositivePage(bounds[0], part)
+		if err != nil {
+			return nil, err
+		}
+		last := first
+		if len(bounds) == 2 {
+			last, err = parsePositivePage(bounds[1], part)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if last < first {
+			return nil, fmt.Errorf("invalid page range segment %q: end page is before start page", part)
+		}
+		if last > totalPages {
+			return nil, fmt.Errorf("invalid page range segment %q: page %d exceeds total pages %d", part, last, totalPages)
+		}
+
+		ranges = append(ranges, pageRange{first: first, last: last})
+	}
+
+	return ranges, nil
+}
+
+func parsePositivePage(raw, segment string) (int, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return 0, fmt.Errorf("invalid page range segment %q: missing page number", segment)
+	}
+	page, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0, fmt.Errorf("invalid page range segment %q: %w", segment, err)
+	}
+	if page < 1 {
+		return 0, fmt.Errorf("invalid page range segment %q: page must be >= 1", segment)
+	}
+	return page, nil
+}
+
 func pageSlice(pattern string, first, last int) []string {
 	var files []string
 	for i := first; i <= last; i++ {
 		files = append(files, fmt.Sprintf(pattern, i))
 	}
 	return files
-}
-
-func renameFile(src, dst string) error {
-	cmd := exec.Command("mv", src, dst)
-	return cmd.Run()
 }

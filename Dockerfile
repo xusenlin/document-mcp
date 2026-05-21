@@ -1,5 +1,6 @@
 FROM golang:1.26-alpine AS builder
 
+ARG VERSION=dev
 ENV GOPROXY=https://goproxy.cn,direct
 
 WORKDIR /app
@@ -7,7 +8,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /document-mcp ./cmd/cli/
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w -X main.version=${VERSION}" -o /document-mcp ./cmd/cli/
 
 FROM debian:bookworm-slim
 
